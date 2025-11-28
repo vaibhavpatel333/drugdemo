@@ -1,0 +1,40 @@
+org: vaibhavtest
+app: medicine
+service: healthcaredemo
+
+provider:
+  name: aws
+  runtime: nodejs18.x
+  region: ap-south-1
+
+  environment:
+    DB_HOST: ${env:DB_HOST}
+    DB_PORT: ${env:DB_PORT}
+    DB_USER: ${env:DB_USER}
+    DB_PASS: ${env:DB_PASS}
+    DB_NAME: ${env:DB_NAME}
+
+  vpc:
+  securityGroupIds:
+    - sg-01db80422a01e50cd
+  subnetIds:
+    - subnet-0ec119b5913559f53
+
+
+package:
+  individually: false
+  excludeDevDependencies: true
+  patterns:
+    - "!*.env"
+
+plugins:
+  - serverless-offline
+
+functions:
+  getMedicineRecords:
+    handler: handlers/getMedicineRecords.handler
+    timeout: 25
+    events:
+      - http:
+          path: medicines
+          method: get
