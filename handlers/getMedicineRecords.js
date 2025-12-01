@@ -1,49 +1,38 @@
-import { getMedicineRecordsService } from "../functions/medicineService.js";
+import { getMedicineRecordsService } from "../servicesFunctions/medicineService.js";
+import { errorResponse, successResponse } from "../utils/http.js";
 
 export const handler = async (event) => {
   try {
-    const queryParams = event.queryStringParameters || {};
+    const query = event?.queryStringParameters || {};
 
-    const { id, code, company } = queryParams;
-
-    const limit = Number(queryParams.limit) || 10;
-    const page = Number(queryParams.page) || 1;
-
+    // Call service layer
     const result = await getMedicineRecordsService({
-      id,
-      code,
-      company,
-      limit,
-      page,
+      id: query.id,
+      code: query.code,
+      company: query.company,
+      limit: Number(query.limit) || 10, // default limit
+      page: Number(query.page) || 1,    // default page
     });
-    // If nothing found (ID / code / company)
-    if ((id || code || company) && (!result || !result.length)) {
-      return {
-        statusCode: 404,
-        body: JSON.stringify({
-          success: false,
-          message: "Record not found",
-        }),
-      };
+
+    // When searching by ID/CODE/COMPANY → show "not found" if zero results
+    if ((query.id || query.code || query.company) && !result.rows.length) {
+      return successResponse(404, {
+        success: false,
+        message: "Record not found",
+      });
     }
 
-    return {
-      statusCode: 200,
-      body: JSON.stringify({
-        success: true,
-        data: result,
-      }),
-    };
+    // Successful response with pagination metadata
+    return successResponse(200, {
+      success: true,
+      total: result.total,
+      page: result.page,
+      limit: result.limit,
+      data: result.rows, 
+    });
+
   } catch (err) {
     console.error("❌ Handler Error:", err);
-
-    return {
-      statusCode: err.statusCode || 500,
-      body: JSON.stringify({
-        success: false,
-        message: err.message || "Internal Server Error",
-        error: process.env.DEBUG === "true" ? err.stack : undefined, // optional
-      }),
-    };
+    return errorResponse(err);
   }
 };
