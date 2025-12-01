@@ -5,16 +5,24 @@ export const handler = async (event) => {
   try {
     const query = event?.queryStringParameters || {};
 
-    // Call service layer
+    // Convert fetchAll flag to boolean
+    const fetchAll = query.fetchAll === "true";
+
+    // Only apply limit/page when NOT fetching all
+    const limit =
+      !fetchAll && query.limit !== undefined ? Number(query.limit) : 10;
+
+    const page = !fetchAll ? Number(query.page) || 1 : null;
+
     const result = await getMedicineRecordsService({
       id: query.id,
       code: query.code,
       company: query.company,
-      limit: Number(query.limit) || 10, // default limit
-      page: Number(query.page) || 1,    // default page
+      fetchAll,
+      limit,
+      page,
     });
 
-    // When searching by ID/CODE/COMPANY → show "not found" if zero results
     if ((query.id || query.code || query.company) && !result.rows.length) {
       return successResponse(404, {
         success: false,
@@ -22,13 +30,12 @@ export const handler = async (event) => {
       });
     }
 
-    // Successful response with pagination metadata
     return successResponse(200, {
       success: true,
       total: result.total,
-      page: result.page,
-      limit: result.limit,
-      data: result.rows, 
+      page: query.fetchAll === "true" ? null : result.page,
+      limit: query.fetchAll === "true" ? null : result.limit,
+      data: result.rows,
     });
 
   } catch (err) {

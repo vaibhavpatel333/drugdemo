@@ -1,5 +1,4 @@
-// generic fetch medicines query
-export const fetchMedicinesQuery = ({ id, code, company, limit, page }) => {
+export const fetchMedicinesQuery = ({ id, code, company, fetchAll, limit, page }) => {
   let query = `SELECT * FROM public.medicines`;
   let params = [];
 
@@ -36,15 +35,21 @@ export const fetchMedicinesQuery = ({ id, code, company, limit, page }) => {
     countParams.push(`%${company}%`);
   }
 
-  // Pagination mode → no filters
+  // No filters → pagination or fetchAll
   else {
-    const offset = (page - 1) * limit;
+    // Fetch ALL records when flag is true
+    if (fetchAll) {
+      query += ` ORDER BY launch_date DESC`;
 
-    query += ` ORDER BY launch_date DESC LIMIT $1 OFFSET $2`;
-    params.push(limit, offset);
+      countQuery = `SELECT COUNT(*) AS total FROM public.medicines`;
+    } else {
+      const offset = (page - 1) * limit;
 
-    // Count all rows for pagination
-    countQuery = `SELECT COUNT(*) AS total FROM public.medicines`;
+      query += ` ORDER BY launch_date DESC LIMIT $1 OFFSET $2`;
+      params.push(limit, offset);
+
+      countQuery = `SELECT COUNT(*) AS total FROM public.medicines`;
+    }
   }
 
   return { query, params, countQuery, countParams };
